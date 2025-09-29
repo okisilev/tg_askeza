@@ -1,13 +1,13 @@
 from aiogram import Bot, Dispatcher, types
 import asyncio
 
-BOT_TOKEN = "8175601106:AAEYmyV6RZ_9vOJYzwGDDdcIt87B8yZYyR0"
+BOT_TOKEN = "7843200583:AAF-CcQg5zsSe3jfR5_jbAJ8L8ggtKTzGDw"
 
 # ЗАМЕНИТЕ НА СВОЙ ID (число), чтобы бот прислал ID канала в личку
 YOUR_USER_ID = 431292182  # Пример: 123456789
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher()as
 
 @dp.message()
 async def handle_message(message: types.Message):

@@ -196,6 +196,10 @@ def run_bot_sync():
     try:
         logger.info("🤖 Запускаем Telegram бота...")
         
+        # Создаем новый event loop для этого потока
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         # Создаем приложение
         from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
         
@@ -208,12 +212,16 @@ def run_bot_sync():
         
         logger.info("✅ Обработчики зарегистрированы")
         
-        # Запускаем бота
+        # Запускаем бота в event loop
         logger.info("🚀 Бот запущен (без webhook)")
-        application.run_polling()
+        loop.run_until_complete(application.run_polling())
         
     except Exception as e:
         logger.error(f"Ошибка при запуске бота: {e}")
+    finally:
+        # Закрываем event loop
+        if 'loop' in locals():
+            loop.close()
 
 def main():
     """Основная функция"""

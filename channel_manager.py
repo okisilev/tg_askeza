@@ -1,7 +1,7 @@
 import logging
 from telegram import Bot, ChatMember
 from telegram.error import TelegramError
-from config import BOT_TOKEN, PRIVATE_CHANNEL_ID, PRIVATE_CHAT_ID
+from config import BOT_TOKEN, PRIVATE_CHANNEL_ID
 from database import Database
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,10 @@ class ChannelManager:
             'channel': {'is_admin': False, 'can_invite': False, 'error': None},
             'chat': {'is_admin': False, 'can_invite': False, 'error': None}
         }
+        
+        # Инициализируем бота если нужно
+        if not self.bot._initialized:
+            await self.bot.initialize()
         
         # Проверяем права в канале
         if PRIVATE_CHANNEL_ID:
@@ -34,21 +38,26 @@ class ChannelManager:
             except TelegramError as e:
                 permissions['channel']['error'] = str(e)
         
-        # Проверяем права в чате
-        if PRIVATE_CHAT_ID:
-            try:
-                bot_member = await self.bot.get_chat_member(chat_id=PRIVATE_CHAT_ID, user_id=self.bot.id)
-                permissions['chat']['is_admin'] = bot_member.status in ['administrator', 'creator']
-                
-                if permissions['chat']['is_admin']:
-                    # Проверяем права на приглашение
-                    try:
-                        await self.bot.create_chat_invite_link(chat_id=PRIVATE_CHAT_ID, member_limit=1)
-                        permissions['chat']['can_invite'] = True
-                    except TelegramError as e:
-                        permissions['chat']['error'] = str(e)
-            except TelegramError as e:
-                permissions['chat']['error'] = str(e)
+        # Проверяем права в чате (если настроен)
+        try:
+            from config import PRIVATE_CHAT_ID
+            if PRIVATE_CHAT_ID:
+                try:
+                    bot_member = await self.bot.get_chat_member(chat_id=PRIVATE_CHAT_ID, user_id=self.bot.id)
+                    permissions['chat']['is_admin'] = bot_member.status in ['administrator', 'creator']
+                    
+                    if permissions['chat']['is_admin']:
+                        # Проверяем права на приглашение
+                        try:
+                            await self.bot.create_chat_invite_link(chat_id=PRIVATE_CHAT_ID, member_limit=1)
+                            permissions['chat']['can_invite'] = True
+                        except TelegramError as e:
+                            permissions['chat']['error'] = str(e)
+                except TelegramError as e:
+                    permissions['chat']['error'] = str(e)
+        except ImportError:
+            # PRIVATE_CHAT_ID не настроен
+            permissions['chat']['error'] = 'PRIVATE_CHAT_ID не настроен'
         
         return permissions
     
@@ -59,6 +68,10 @@ class ChannelManager:
             return False
         
         try:
+            # Инициализируем бота если нужно
+            if not self.bot._initialized:
+                await self.bot.initialize()
+            
             # Проверяем, является ли бот администратором канала
             bot_member = await self.bot.get_chat_member(chat_id=PRIVATE_CHANNEL_ID, user_id=self.bot.id)
             if bot_member.status not in ['administrator', 'creator']:
@@ -94,11 +107,23 @@ class ChannelManager:
     
     async def add_user_to_chat(self, user_id: int) -> bool:
         """Добавление пользователя в закрытый чат"""
-        if not PRIVATE_CHAT_ID:
+        try:
+            from config import PRIVATE_CHAT_ID
+            if not PRIVATE_CHAT_ID:
+                logger.warning("PRIVATE_CHAT_ID не настроен")
+                return False
+        except ImportError:
             logger.warning("PRIVATE_CHAT_ID не настроен")
             return False
         
         try:
+            # Инициализируем бота если нужно
+            if not self.bot._initialized:
+                await self.bot.initialize()
+            
+            # Получаем PRIVATE_CHAT_ID
+            from config import PRIVATE_CHAT_ID
+            
             # Проверяем, является ли бот администратором чата
             bot_member = await self.bot.get_chat_member(chat_id=PRIVATE_CHAT_ID, user_id=self.bot.id)
             if bot_member.status not in ['administrator', 'creator']:
@@ -139,6 +164,10 @@ class ChannelManager:
             return False
         
         try:
+            # Инициализируем бота если нужно
+            if not self.bot._initialized:
+                await self.bot.initialize()
+            
             # Проверяем, является ли бот администратором канала
             bot_member = await self.bot.get_chat_member(PRIVATE_CHANNEL_ID, self.bot.id)
             if bot_member.status not in ['administrator', 'creator']:
@@ -157,11 +186,23 @@ class ChannelManager:
     
     async def remove_user_from_chat(self, user_id: int) -> bool:
         """Удаление пользователя из закрытого чата"""
-        if not PRIVATE_CHAT_ID:
+        try:
+            from config import PRIVATE_CHAT_ID
+            if not PRIVATE_CHAT_ID:
+                logger.warning("PRIVATE_CHAT_ID не настроен")
+                return False
+        except ImportError:
             logger.warning("PRIVATE_CHAT_ID не настроен")
             return False
         
         try:
+            # Инициализируем бота если нужно
+            if not self.bot._initialized:
+                await self.bot.initialize()
+            
+            # Получаем PRIVATE_CHAT_ID
+            from config import PRIVATE_CHAT_ID
+            
             # Проверяем, является ли бот администратором чата
             bot_member = await self.bot.get_chat_member(PRIVATE_CHAT_ID, self.bot.id)
             if bot_member.status not in ['administrator', 'creator']:
@@ -196,6 +237,10 @@ class ChannelManager:
             return False
         
         try:
+            # Инициализируем бота если нужно
+            if not self.bot._initialized:
+                await self.bot.initialize()
+            
             # Проверяем, является ли бот администратором канала
             bot_member = await self.bot.get_chat_member(chat_id=PRIVATE_CHANNEL_ID, user_id=self.bot.id)
             if bot_member.status not in ['administrator', 'creator']:
@@ -238,7 +283,11 @@ class ChannelManager:
     
     async def check_user_in_chat(self, user_id: int) -> bool:
         """Проверка, находится ли пользователь в чате"""
-        if not PRIVATE_CHAT_ID:
+        try:
+            from config import PRIVATE_CHAT_ID
+            if not PRIVATE_CHAT_ID:
+                return False
+        except ImportError:
             return False
         
         try:

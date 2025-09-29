@@ -44,7 +44,7 @@ def process_successful_payment_simple(payment_id: str, user_id: int, payment_typ
             except Exception as e:
                 logger.error(f"❌ {source}: Ошибка при добавлении пользователя {user_id} в каналы: {e}")
             
-            # Уведомляем пользователя (синхронно)
+            # Уведомляем пользователя с кнопками
             try:
                 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
                 bot = Bot(token=BOT_TOKEN)
@@ -58,16 +58,23 @@ def process_successful_payment_simple(payment_id: str, user_id: int, payment_typ
 • Получать эксклюзивные материалы
 • Участвовать в закрытых обсуждениях
 • Получать персональные консультации
-
-Нажмите /start для доступа к меню.
                 """
                 
-                # Отправляем простое сообщение без кнопок
+                # Создаем кнопки для доступа
+                keyboard = [
+                    [InlineKeyboardButton("📺 Закрытый канал", callback_data="private_channel")],
+                    [InlineKeyboardButton("💬 Закрытый чат", callback_data="private_chat")],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                # Отправляем сообщение с кнопками
                 bot.send_message(
                     chat_id=user_id,
-                    text=success_text
+                    text=success_text,
+                    reply_markup=reply_markup
                 )
-                logger.info(f"✅ {source}: Уведомление отправлено пользователю {user_id}")
+                logger.info(f"✅ {source}: Уведомление с кнопками отправлено пользователю {user_id}")
                 
             except Exception as e:
                 logger.error(f"❌ {source}: Ошибка при отправке уведомления пользователю {user_id}: {e}")
