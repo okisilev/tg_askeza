@@ -17,15 +17,21 @@ class Config:
     YOOKASSA_SECRET_KEY: str = "test_r0kwPnEziXP9IB-oPdBgGbd4VwrdoS5_ejuDtmxmjms"
     
     # ID приватного канала
-    PRIVATE_CHANNEL_ID: str = "-2073129707770"
+    PRIVATE_CHANNEL_ID: str = "-1003129707770"
+    
+    # ID администратора для уведомлений
+    ADMIN_ID: int = 431292182  # Замените на ваш Telegram ID
     
     # Настройки подписки
-    SUBSCRIPTION_PRICE: float = 299.0  # Цена подписки в рублях
     SUBSCRIPTION_DAYS: int = 30  # Длительность подписки в днях
     WARNING_DAYS: int = 3  # За сколько дней предупреждать об окончании
     
-    # Описание платежа
-    PAYMENT_DESCRIPTION: str = "Подписка на приватный канал на 30 дней"
+    # Цены и описания подписок
+    ASKEZA_PRICE: float = 990.0  # Цена базовой подписки "Аскеза"
+    ASKEZA_NUMEROLOGY_PRICE: float = 2490.0  # Цена расширенной подписки "Аскеза+Нумерология"
+    
+    ASKEZA_DESCRIPTION: str = "Аскеза - доступ к закрытому каналу на 30 дней"
+    ASKEZA_NUMEROLOGY_DESCRIPTION: str = "Аскеза+Нумерологический разбор - расширенный доступ на 30 дней"
     
     # Настройки базы данных
     DATABASE_PATH: str = "subscription_bot.db"

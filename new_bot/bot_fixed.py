@@ -52,8 +52,55 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"❌ [START] Ошибка при добавлении пользователя {user_id}: {e}")
         logger.error(f"[START] Ошибка при добавлении пользователя {user_id}: {e}")
-    
-    # Проверяем статус подписки
+
+    # Отправляем видео
+    try:
+        print(f"🎥 [START] Отправляем видео пользователю {user_id}")
+        logger.info(f"[START] Отправляем видео пользователю {user_id}")
+        
+        with open("start.mp4", "rb") as video_file:
+            await context.bot.send_video(
+                chat_id=user_id,
+                video=video_file,
+                caption="Добро пожаловать! 🌸"
+            )
+        
+        print(f"✅ [START] Видео отправлено пользователю {user_id}")
+        logger.info(f"[START] Видео отправлено пользователю {user_id}")
+        
+    except FileNotFoundError:
+        print(f"❌ [START] Файл start.mp4 не найден")
+        logger.error(f"[START] Файл start.mp4 не найден")
+    except Exception as e:
+        print(f"❌ [START] Ошибка при отправке видео пользователю {user_id}: {e}")
+        logger.error(f"[START] Ошибка при отправке видео пользователю {user_id}: {e}")
+
+    # Отправляем приветственное сообщение
+    try:
+        welcome_text = f"""Меня зовут, Ольга🌸 И я любитель аскез, данную практику я использую уже целых 4 года😍 даже прошла по ней обучение, чтоб знать все нюансы! Из всех сотни практик, которые я когда либо пробовала, аскеза моя самая любимая!💕
+
+Во-первых, ты попробуешь, а как может быть по другому?!☀️
+Во-вторых, ты начнешь верить в чудо, потому что желания могут исполняться самым волшебным образом💫
+В третьих, твоя жизнь не станет прежней!⭐️
+
+Я жду тебя, {user.first_name}!🫂"""
+        
+        print(f"💬 [START] Отправляем приветственное сообщение пользователю {user_id}")
+        logger.info(f"[START] Отправляем приветственное сообщение пользователю {user_id}")
+        
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=welcome_text
+        )
+        
+        print(f"✅ [START] Приветственное сообщение отправлено пользователю {user_id}")
+        logger.info(f"[START] Приветственное сообщение отправлено пользователю {user_id}")
+        
+    except Exception as e:
+        print(f"❌ [START] Ошибка при отправке приветственного сообщения пользователю {user_id}: {e}")
+        logger.error(f"[START] Ошибка при отправке приветственного сообщения пользователю {user_id}: {e}")
+
+    # Проверяем статус подписки и показываем соответствующее меню
     is_subscribed = db.is_subscription_active(user_id)
     
     if is_subscribed:
@@ -62,68 +109,130 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expires_at = datetime.fromisoformat(subscription['expires_at'])
         days_left = (expires_at - datetime.now()).days
         
-        keyboard = [
-            [InlineKeyboardButton("📺 Перейти в канал", url=f"https://t.me/c/{config.PRIVATE_CHANNEL_ID[1:]}")],
-            [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
-            [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        welcome_text = f"""
+        # Создаем новую пригласительную ссылку для доступа к каналу
+        try:
+            print(f"🔗 [START] Создаем пригласительную ссылку для пользователя {user_id}")
+            logger.info(f"[START] Создаем пригласительную ссылку для пользователя {user_id}")
+            
+            invite_link = await context.bot.create_chat_invite_link(
+                chat_id=int(config.PRIVATE_CHANNEL_ID),
+                member_limit=1,
+                expire_date=None
+            )
+            
+            print(f"✅ [START] Пригласительная ссылка создана для пользователя {user_id}")
+            logger.info(f"[START] Пригласительная ссылка создана для пользователя {user_id}")
+            
+            keyboard = [
+                [InlineKeyboardButton("📺 Перейти в канал", url=invite_link.invite_link)],
+                [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
+                [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            status_text = f"""
 🎉 Добро пожаловать обратно!
 
 У вас есть активная подписка до {expires_at.strftime('%d.%m.%Y')}
 Осталось дней: {days_left}
 
 Нажмите кнопку ниже для перехода в приватный канал.
-        """
-        
-        await update.message.reply_text(
-            welcome_text,
-            reply_markup=reply_markup
-        )
+            """
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=status_text,
+                reply_markup=reply_markup
+            )
+            
+        except Exception as e:
+            print(f"❌ [START] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
+            logger.error(f"[START] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
+            
+            # Fallback - используем статичную ссылку
+            keyboard = [
+                [InlineKeyboardButton("📺 Перейти в канал", url=f"https://t.me/c/{config.PRIVATE_CHANNEL_ID[1:]}")],
+                [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
+                [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            status_text = f"""
+🎉 Добро пожаловать обратно!
+
+У вас есть активная подписка до {expires_at.strftime('%d.%m.%Y')}
+Осталось дней: {days_left}
+
+Нажмите кнопку ниже для перехода в приватный канал.
+            """
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=status_text,
+                reply_markup=reply_markup
+            )
     else:
         # Пользователь не подписан
         keyboard = [
-            [InlineKeyboardButton(f"💰 Подписаться ({config.SUBSCRIPTION_PRICE} руб.)", callback_data="subscribe")],
+            [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+            [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        welcome_text = config.WELCOME_MESSAGE.format(price=config.SUBSCRIPTION_PRICE)
+        menu_text = f"""
+🌸 Добро пожаловать в Аскезу!
+
+Выберите подходящий тариф:
+
+🌸 Аскеза - {config.ASKEZA_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• 30 дней подписки
+
+🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Нумерологический разбор любого запроса
+
+        """
         
-        await update.message.reply_text(
-            welcome_text,
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=menu_text,
             reply_markup=reply_markup
         )
     
     print(f"✅ [START] Приветственное сообщение отправлено пользователю {user_id}")
     logger.info(f"[START] Приветственное сообщение отправлено пользователю {user_id}")
 
-async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик создания подписки"""
+async def handle_subscribe_askeza_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик создания подписки Аскеза"""
+    await create_payment(update, context, "askeza", config.ASKEZA_PRICE, config.ASKEZA_DESCRIPTION)
+
+async def handle_subscribe_numerology_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик создания подписки Аскеза+Нумерология"""
+    await create_payment(update, context, "numerology", config.ASKEZA_NUMEROLOGY_PRICE, config.ASKEZA_NUMEROLOGY_DESCRIPTION)
+
+async def create_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, subscription_type: str, price: float, description: str):
+    """Создание платежа для подписки"""
     query = update.callback_query
     await query.answer()
     
     user_id = query.from_user.id
     
-    print(f"🔍 [SUBSCRIBE] Получен запрос на подписку от пользователя {user_id}")
-    logger.info(f"[SUBSCRIBE] Получен запрос на подписку от пользователя {user_id}")
+    print(f"🔍 [SUBSCRIBE] Получен запрос на подписку {subscription_type} от пользователя {user_id}")
+    logger.info(f"[SUBSCRIBE] Получен запрос на подписку {subscription_type} от пользователя {user_id}")
     
     try:
-        # Создаем уникальный ID платежа
-        payment_id = str(uuid.uuid4())
-        print(f"✅ [SUBSCRIBE] Создан payment_id: {payment_id}")
-        logger.info(f"[SUBSCRIBE] Создан payment_id: {payment_id}")
-        
-        # Создаем платеж в ЮKassa
+        # Создаем платеж в ЮKassa (без предварительного ID)
         print(f"🔍 [SUBSCRIBE] Создаем платеж в ЮKassa для пользователя {user_id}")
         logger.info(f"[SUBSCRIBE] Создаем платеж в ЮKassa для пользователя {user_id}")
         
         payment = Payment.create({
             "amount": {
-                "value": f"{config.SUBSCRIPTION_PRICE:.2f}",
+                "value": f"{price:.2f}",
                 "currency": "RUB"
             },
             "payment_method_data": {
@@ -133,9 +242,14 @@ async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAUL
                 "type": "redirect",
                 "return_url": f"https://t.me/{context.bot.username}"
             },
-            "description": config.PAYMENT_DESCRIPTION,
+            "description": description,
             "capture": True  # Автоматическое подтверждение платежа
-        }, payment_id)
+        })
+        
+        # Получаем ID платежа от ЮKassa
+        payment_id = payment.id
+        print(f"✅ [SUBSCRIBE] Создан payment_id: {payment_id}")
+        logger.info(f"[SUBSCRIBE] Создан payment_id: {payment_id}")
         
         print(f"✅ [SUBSCRIBE] Платеж создан в ЮKassa: {payment.id}")
         logger.info(f"[SUBSCRIBE] Платеж создан в ЮKassa: {payment.id}")
@@ -145,7 +259,7 @@ async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAUL
             db.add_payment(
                 user_id=user_id,
                 payment_id=payment_id,
-                amount=config.SUBSCRIPTION_PRICE
+                amount=price
             )
             print(f"✅ [SUBSCRIBE] Платеж сохранен в базу данных для пользователя {user_id}")
             logger.info(f"[SUBSCRIBE] Платеж сохранен в базу данных для пользователя {user_id}")
@@ -167,12 +281,13 @@ async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAUL
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         payment_text = f"""
-💳 Создан платеж на подписку за {config.SUBSCRIPTION_PRICE} рублей
+💳 Создан платеж на сумму {price} рублей
 
-Подписка действует {config.SUBSCRIPTION_DAYS} дней.
+{description}
 
 Вы будете перенаправлены на платёжную форму ЮKassa.
-После оплаты нажмите кнопку 'Проверить оплату' для активации подписки.
+
+После оплаты нажмите кнопку 'Проверить оплату' для подтверждения доступа.
         """
         
         await query.edit_message_text(
@@ -226,11 +341,72 @@ async def handle_check_payment_callback(update: Update, context: ContextTypes.DE
             print(f"✅ [CHECK] Статус платежа {payment_id} обновлен на succeeded")
             logger.info(f"[CHECK] Статус платежа {payment_id} обновлен на succeeded")
             
+            # Определяем тип подписки по сумме
+            amount = payment_info['amount']
+            if amount == config.ASKEZA_PRICE:
+                subscription_type = "askeza"
+                subscription_name = "Аскеза"
+            elif amount == config.ASKEZA_NUMEROLOGY_PRICE:
+                subscription_type = "numerology"
+                subscription_name = "Аскеза+Нумерология"
+            else:
+                subscription_type = "askeza"
+                subscription_name = "Аскеза"
+            
             # Создаем подписку
             try:
-                db.create_subscription(user_id, payment_id, config.SUBSCRIPTION_PRICE)
-                print(f"✅ [CHECK] Подписка создана для пользователя {user_id}")
-                logger.info(f"[CHECK] Подписка создана для пользователя {user_id}")
+                db.create_subscription(user_id, payment_id, amount, subscription_type)
+                print(f"✅ [CHECK] Подписка {subscription_name} создана для пользователя {user_id}")
+                logger.info(f"[CHECK] Подписка {subscription_name} создана для пользователя {user_id}")
+                
+                # Отправляем уведомления о успешной оплате
+                try:
+                    # Уведомление пользователю
+                    user_notification = f"""
+🎉 Поздравляем! Оплата прошла успешно!
+
+💰 Сумма: {amount} рублей
+📦 Подписка: {subscription_name}
+📅 Длительность: {config.SUBSCRIPTION_DAYS} дней
+⏰ Активна до: {(datetime.now() + timedelta(days=config.SUBSCRIPTION_DAYS)).strftime('%d.%m.%Y %H:%M')}
+
+✅ Ваш доступ к закрытому каналу активирован!
+                    """
+                    
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text=user_notification
+                    )
+                    
+                    print(f"✅ [CHECK] Уведомление пользователю {user_id} отправлено")
+                    logger.info(f"[CHECK] Уведомление пользователю {user_id} отправлено")
+                    
+                    # Уведомление админу
+                    admin_notification = f"""
+🔔 Новая успешная оплата!
+
+👤 Пользователь: {query.from_user.first_name} {query.from_user.last_name or ''}
+🆔 ID: {user_id}
+📱 Username: @{query.from_user.username or 'не указан'}
+💰 Сумма: {amount} рублей
+📦 Подписка: {subscription_name}
+📅 Длительность: {config.SUBSCRIPTION_DAYS} дней
+🆔 Payment ID: {payment_id}
+⏰ Время: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+                    """
+                    
+                    # Отправляем админу
+                    await context.bot.send_message(
+                        chat_id=config.ADMIN_ID,
+                        text=admin_notification
+                    )
+                    
+                    print(f"✅ [CHECK] Уведомление админу отправлено")
+                    logger.info(f"[CHECK] Уведомление админу отправлено")
+                    
+                except TelegramError as e:
+                    print(f"❌ [CHECK] Ошибка при отправке уведомлений: {e}")
+                    logger.error(f"[CHECK] Ошибка при отправке уведомлений: {e}")
                 
                 # Создаем пригласительную ссылку
                 invite_link = await context.bot.create_chat_invite_link(
@@ -317,7 +493,21 @@ async def handle_my_status_callback(update: Update, context: ContextTypes.DEFAUL
         days_left = (expires_at - datetime.now()).days
         
         if days_left > 0:
-            status_text = f"""
+            # Создаем новую пригласительную ссылку для активной подписки
+            try:
+                print(f"🔗 [STATUS] Создаем пригласительную ссылку для пользователя {user_id}")
+                logger.info(f"[STATUS] Создаем пригласительную ссылку для пользователя {user_id}")
+                
+                invite_link = await context.bot.create_chat_invite_link(
+                    chat_id=int(config.PRIVATE_CHANNEL_ID),
+                    member_limit=1,
+                    expire_date=None
+                )
+                
+                print(f"✅ [STATUS] Пригласительная ссылка создана для пользователя {user_id}")
+                logger.info(f"[STATUS] Пригласительная ссылка создана для пользователя {user_id}")
+                
+                status_text = f"""
 📊 Ваш статус подписки:
 
 ✅ Подписка активна
@@ -325,7 +515,32 @@ async def handle_my_status_callback(update: Update, context: ContextTypes.DEFAUL
 ⏰ Осталось дней: {days_left}
 
 Вы можете продолжать пользоваться всеми возможностями приватного канала.
-            """
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("📺 Перейти в канал", url=invite_link.invite_link)],
+                    [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+                ]
+                
+            except Exception as e:
+                print(f"❌ [STATUS] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
+                logger.error(f"[STATUS] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
+                
+                status_text = f"""
+📊 Ваш статус подписки:
+
+✅ Подписка активна
+📅 Действует до: {expires_at.strftime('%d.%m.%Y')}
+⏰ Осталось дней: {days_left}
+
+Вы можете продолжать пользоваться всеми возможностями приватного канала.
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+                ]
         else:
             status_text = f"""
 📊 Ваш статус подписки:
@@ -335,6 +550,11 @@ async def handle_my_status_callback(update: Update, context: ContextTypes.DEFAUL
 
 Для продолжения доступа необходимо продлить подписку.
             """
+            
+            keyboard = [
+                [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
+                [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+            ]
     else:
         status_text = """
 📊 Ваш статус подписки:
@@ -343,11 +563,12 @@ async def handle_my_status_callback(update: Update, context: ContextTypes.DEFAUL
 
 Для доступа к приватному каналу необходимо оформить подписку.
         """
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
+            [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+        ]
     
-    keyboard = [
-        [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
-    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
@@ -368,8 +589,37 @@ async def handle_renew_subscription_callback(update: Update, context: ContextTyp
     print(f"🔍 [RENEW] Получен запрос на продление подписки от пользователя {user_id}")
     logger.info(f"[RENEW] Получен запрос на продление подписки от пользователя {user_id}")
     
-    # Перенаправляем на создание новой подписки
-    await handle_subscribe_callback(update, context)
+    # Показываем меню с двумя кнопками оплаты
+    keyboard = [
+        [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
+        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    renew_text = f"""
+🔄 Продление подписки
+
+Выберите подходящий тариф для продления:
+
+🌸 Аскеза - {config.ASKEZA_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• 30 дней подписки
+
+🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Нумерологический разбор любого запроса
+    """
+    
+    await query.edit_message_text(
+        renew_text,
+        reply_markup=reply_markup
+    )
+    
+    print(f"✅ [RENEW] Меню продления отправлено пользователю {user_id}")
+    logger.info(f"[RENEW] Меню продления отправлено пользователю {user_id}")
 
 async def handle_about_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик информации о подписке"""
@@ -384,9 +634,15 @@ async def handle_about_subscription_callback(update: Update, context: ContextTyp
     about_text = f"""
 ℹ️ О подписке:
 
-💰 Стоимость: {config.SUBSCRIPTION_PRICE} рублей
-📅 Длительность: {config.SUBSCRIPTION_DAYS} дней
-📺 Доступ: Приватный канал с эксклюзивными материалами
+🌸 Аскеза - {config.ASKEZA_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• 30 дней подписки
+
+🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Нумерологический разбор любого запроса
 
 🎁 Что вы получите:
 • Эксклюзивные материалы
@@ -401,7 +657,8 @@ async def handle_about_subscription_callback(update: Update, context: ContextTyp
     """
     
     keyboard = [
-        [InlineKeyboardButton(f"💰 Подписаться ({config.SUBSCRIPTION_PRICE} руб.)", callback_data="subscribe")],
+        [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
         [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -448,7 +705,8 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
         """
     else:
         keyboard = [
-            [InlineKeyboardButton(f"💰 Подписаться ({config.SUBSCRIPTION_PRICE} руб.)", callback_data="subscribe")],
+            [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+            [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
         ]
@@ -458,7 +716,11 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
 🏠 Главное меню
 
 Получите доступ к эксклюзивным материалам и закрытым обсуждениям.
-Подписка на {config.SUBSCRIPTION_DAYS} дней за {config.SUBSCRIPTION_PRICE} рублей.
+
+🌸 **Аскеза** - {config.ASKEZA_PRICE} рублей
+🔮 **Аскеза+Нумерология** - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
+
+Подписка на {config.SUBSCRIPTION_DAYS} дней.
         """
     
     await query.edit_message_text(
@@ -477,7 +739,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 def main():
     """Основная функция запуска бота"""
     print("🚀 Запуск исправленного бота с подписками...")
-    print(f"💰 Стоимость подписки: {config.SUBSCRIPTION_PRICE} рублей")
+    print(f"🌸 Аскеза: {config.ASKEZA_PRICE} рублей")
+    print(f"🔮 Аскеза+Нумерология: {config.ASKEZA_NUMEROLOGY_PRICE} рублей")
     print(f"📅 Длительность: {config.SUBSCRIPTION_DAYS} дней")
     print(f"📺 Канал: {config.PRIVATE_CHANNEL_ID}")
     print("📝 Логирование включено")
@@ -488,7 +751,8 @@ def main():
 
         # Добавляем обработчики
         application.add_handler(CommandHandler("start", start))
-        application.add_handler(CallbackQueryHandler(handle_subscribe_callback, pattern="subscribe"))
+        application.add_handler(CallbackQueryHandler(handle_subscribe_askeza_callback, pattern="subscribe_askeza"))
+        application.add_handler(CallbackQueryHandler(handle_subscribe_numerology_callback, pattern="subscribe_numerology"))
         application.add_handler(CallbackQueryHandler(handle_check_payment_callback, pattern="check_payment"))
         application.add_handler(CallbackQueryHandler(handle_my_status_callback, pattern="my_status"))
         application.add_handler(CallbackQueryHandler(handle_renew_subscription_callback, pattern="renew_subscription"))

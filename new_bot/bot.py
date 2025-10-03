@@ -114,12 +114,7 @@ async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAUL
     logger.info(f"[SUBSCRIBE] Получен запрос на подписку от пользователя {user_id}")
     
     try:
-        # Создаем уникальный ID платежа
-        payment_id = str(uuid.uuid4())
-        print(f"✅ [SUBSCRIBE] Создан payment_id: {payment_id}")
-        logger.info(f"[SUBSCRIBE] Создан payment_id: {payment_id}")
-        
-        # Создаем платеж в ЮKassa
+        # Создаем платеж в ЮKassa (без предварительного ID)
         print(f"🔍 [SUBSCRIBE] Создаем платеж в ЮKassa для пользователя {user_id}")
         logger.info(f"[SUBSCRIBE] Создаем платеж в ЮKassa для пользователя {user_id}")
         
@@ -137,7 +132,12 @@ async def handle_subscribe_callback(update: Update, context: ContextTypes.DEFAUL
             },
             "description": config.PAYMENT_DESCRIPTION,
             "capture": True  # Автоматическое подтверждение платежа
-        }, payment_id)
+        })
+        
+        # Получаем ID платежа от ЮKassa
+        payment_id = payment.id
+        print(f"✅ [SUBSCRIBE] Создан payment_id: {payment_id}")
+        logger.info(f"[SUBSCRIBE] Создан payment_id: {payment_id}")
         
         print(f"✅ [SUBSCRIBE] Платеж создан в ЮKassa: {payment.id}")
         logger.info(f"[SUBSCRIBE] Платеж создан в ЮKassa: {payment.id}")

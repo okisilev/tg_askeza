@@ -40,9 +40,16 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     expires_at TIMESTAMP,
                     is_active BOOLEAN DEFAULT FALSE,
+                    subscription_type TEXT DEFAULT 'askeza',
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )
             ''')
+            
+            # Добавляем поле subscription_type если его нет
+            try:
+                conn.execute('ALTER TABLE subscriptions ADD COLUMN subscription_type TEXT DEFAULT "askeza"')
+            except:
+                pass  # Поле уже существует
             
             # Таблица платежей
             conn.execute('''
@@ -127,14 +134,14 @@ class Database:
             row = cursor.fetchone()
             return dict(row) if row else None
     
-    def create_subscription(self, user_id: int, payment_id: str, amount: float):
+    def create_subscription(self, user_id: int, payment_id: str, amount: float, subscription_type: str = "askeza"):
         """Создание подписки"""
         with self.connection() as conn:
             expires_at = datetime.now() + timedelta(days=config.SUBSCRIPTION_DAYS)
             conn.execute(
-                '''INSERT INTO subscriptions (user_id, payment_id, amount, status, expires_at, is_active) 
-                VALUES (?, ?, ?, ?, ?, ?)''',
-                (user_id, payment_id, amount, 'active', expires_at, True)
+                '''INSERT INTO subscriptions (user_id, payment_id, amount, status, expires_at, is_active, subscription_type) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (user_id, payment_id, amount, 'active', expires_at, True, subscription_type)
             )
     
     def get_user_subscription(self, user_id: int) -> Optional[Dict[str, Any]]:

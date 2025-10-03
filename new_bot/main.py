@@ -62,7 +62,8 @@ def main():
     """Основная функция запуска"""
     print("🚀 Запуск системы бота с подписками")
     print("=" * 50)
-    print(f"💰 Стоимость подписки: {config.SUBSCRIPTION_PRICE} рублей")
+    print(f"🌸 Аскеза: {config.ASKEZA_PRICE} рублей")
+    print(f"🔮 Аскеза+Нумерология: {config.ASKEZA_NUMEROLOGY_PRICE} рублей")
     print(f"📅 Длительность: {config.SUBSCRIPTION_DAYS} дней")
     print(f"⏰ Уведомления: {config.NOTIFICATION_HOUR}:00")
     print(f"📺 Канал: {config.PRIVATE_CHANNEL_ID}")
