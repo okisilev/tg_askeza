@@ -7,9 +7,16 @@ import asyncio
 import threading
 import time
 import logging
+import os
+import sys
 from bot_fixed import main as bot_main
 from scheduler import NotificationScheduler
 from config import config
+
+# Устанавливаем рабочую директорию на директорию скрипта
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(SCRIPT_DIR)
+print(f"📁 Рабочая директория установлена: {SCRIPT_DIR}")
 
 # Настройка логирования
 logging.basicConfig(

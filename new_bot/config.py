@@ -7,6 +7,9 @@ import os
 from dataclasses import dataclass
 from datetime import timedelta
 
+# Получаем путь к директории, где находится этот скрипт
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @dataclass
 class Config:
     # Токен бота от @BotFather
@@ -29,12 +32,14 @@ class Config:
     # Цены и описания подписок
     ASKEZA_PRICE: float = 990.0  # Цена базовой подписки "Аскеза"
     ASKEZA_NUMEROLOGY_PRICE: float = 2490.0  # Цена расширенной подписки "Аскеза+Нумерология"
+    ASKEZA_DRAFT_PRICE: float = 1323.0  # Цена подписки "Аскеза+черновик"
     
     ASKEZA_DESCRIPTION: str = "Аскеза - доступ к закрытому каналу на 30 дней"
     ASKEZA_NUMEROLOGY_DESCRIPTION: str = "Аскеза+Нумерологический разбор - расширенный доступ на 30 дней"
+    ASKEZA_DRAFT_DESCRIPTION: str = "Аскеза+черновик - расширенный доступ на 30 дней"
     
-    # Настройки базы данных
-    DATABASE_PATH: str = "subscription_bot.db"
+    # Настройки базы данных (абсолютный путь)
+    DATABASE_PATH: str = os.path.join(SCRIPT_DIR, "subscription_bot.db")
     
     # Настройки уведомлений
     NOTIFICATION_HOUR: int = 12  # Час отправки уведомлений (12:00)

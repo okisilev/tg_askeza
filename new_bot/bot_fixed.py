@@ -6,6 +6,7 @@
 import logging
 import asyncio
 import uuid
+import os
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -15,6 +16,9 @@ from yookassa.domain.request import PaymentRequest
 from yookassa.domain.response import PaymentResponse
 from config import config
 from database import Database
+
+# Получаем путь к директории, где находится этот скрипт
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Настройка логирования
 logging.basicConfig(
@@ -58,7 +62,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"🎥 [START] Отправляем видео пользователю {user_id}")
         logger.info(f"[START] Отправляем видео пользователю {user_id}")
         
-        with open("start.mp4", "rb") as video_file:
+        # Формируем абсолютный путь к файлу видео
+        video_path = os.path.join(SCRIPT_DIR, "start.mp4")
+        print(f"📁 [START] Путь к видео: {video_path}")
+        
+        with open(video_path, "rb") as video_file:
             await context.bot.send_video(
                 chat_id=user_id,
                 video=video_file,
@@ -174,28 +182,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         # Пользователь не подписан
         keyboard = [
-            [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
-            [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
+            [InlineKeyboardButton("💎 Тарифы", callback_data="tariffs")],
+            [InlineKeyboardButton("📖 Об Аскезе", callback_data="about_askeza")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        menu_text = f"""
+        menu_text = """
 🌸 Добро пожаловать в Аскезу!
 
-Выберите подходящий тариф:
+Получите доступ к эксклюзивным материалам, закрытым обсуждениям и персональным консультациям.
 
-🌸 Аскеза - {config.ASKEZA_PRICE} рублей
-• Доступ к закрытому каналу
-• Эксклюзивные материалы
-• 30 дней подписки
-
-🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
-• Доступ к закрытому каналу
-• Эксклюзивные материалы
-• Нумерологический разбор любого запроса
-
+Нажмите "💎 Тарифы" чтобы выбрать подходящий тариф подписки.
         """
         
         await context.bot.send_message(
@@ -210,6 +209,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_subscribe_askeza_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик создания подписки Аскеза"""
     await create_payment(update, context, "askeza", config.ASKEZA_PRICE, config.ASKEZA_DESCRIPTION)
+
+async def handle_subscribe_draft_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик создания подписки Аскеза+черновик"""
+    await create_payment(update, context, "draft", config.ASKEZA_DRAFT_PRICE, config.ASKEZA_DRAFT_DESCRIPTION)
 
 async def handle_subscribe_numerology_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик создания подписки Аскеза+Нумерология"""
@@ -589,9 +592,10 @@ async def handle_renew_subscription_callback(update: Update, context: ContextTyp
     print(f"🔍 [RENEW] Получен запрос на продление подписки от пользователя {user_id}")
     logger.info(f"[RENEW] Получен запрос на продление подписки от пользователя {user_id}")
     
-    # Показываем меню с двумя кнопками оплаты
+    # Показываем меню с кнопками оплаты
     keyboard = [
         [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} руб.", callback_data="subscribe_draft")],
         [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
         [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
     ]
@@ -605,6 +609,12 @@ async def handle_renew_subscription_callback(update: Update, context: ContextTyp
 🌸 Аскеза - {config.ASKEZA_PRICE} рублей
 • Доступ к закрытому каналу
 • Эксклюзивные материалы
+• 30 дней подписки
+
+🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Черновик для работы с аскезой
 • 30 дней подписки
 
 🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
@@ -639,6 +649,12 @@ async def handle_about_subscription_callback(update: Update, context: ContextTyp
 • Эксклюзивные материалы
 • 30 дней подписки
 
+🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Черновик для работы с аскезой
+• 30 дней подписки
+
 🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
 • Доступ к закрытому каналу
 • Эксклюзивные материалы
@@ -658,6 +674,7 @@ async def handle_about_subscription_callback(update: Update, context: ContextTyp
     
     keyboard = [
         [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} руб.", callback_data="subscribe_draft")],
         [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
         [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
     ]
@@ -670,6 +687,121 @@ async def handle_about_subscription_callback(update: Update, context: ContextTyp
     
     print(f"✅ [ABOUT] Информация о подписке отправлена пользователю {user_id}")
     logger.info(f"[ABOUT] Информация о подписке отправлена пользователю {user_id}")
+
+async def handle_about_askeza_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик информации об Аскезе"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    print(f"🔍 [ABOUT_ASKEZA] Получен запрос об Аскезе от пользователя {user_id}")
+    logger.info(f"[ABOUT_ASKEZA] Получен запрос об Аскезе от пользователя {user_id}")
+    
+    # Отправляем видео
+    try:
+        print(f"🎥 [ABOUT_ASKEZA] Отправляем видео пользователю {user_id}")
+        logger.info(f"[ABOUT_ASKEZA] Отправляем видео пользователю {user_id}")
+        
+        # Формируем абсолютный путь к файлу видео
+        video_path = os.path.join(SCRIPT_DIR, "aboute.mp4")
+        print(f"📁 [ABOUT_ASKEZA] Путь к видео: {video_path}")
+        
+        with open(video_path, "rb") as video_file:
+            await context.bot.send_video(
+                chat_id=user_id,
+                video=video_file
+                #caption="📖 Об Аскезе"
+            )
+        
+        print(f"✅ [ABOUT_ASKEZA] Видео отправлено пользователю {user_id}")
+        logger.info(f"[ABOUT_ASKEZA] Видео отправлено пользователю {user_id}")
+        
+    except FileNotFoundError:
+        print(f"❌ [ABOUT_ASKEZA] Файл aboute.mp4 не найден")
+        logger.error(f"[ABOUT_ASKEZA] Файл aboute.mp4 не найден")
+    except Exception as e:
+        print(f"❌ [ABOUT_ASKEZA] Ошибка при отправке видео пользователю {user_id}: {e}")
+        logger.error(f"[ABOUT_ASKEZA] Ошибка при отправке видео пользователю {user_id}: {e}")
+    
+    # Отправляем текст с кнопками
+    about_askeza_text = """📖 Об Аскезе
+
+Аскеза - духовная практика подобная посту, только здесь можно брать ее каждый месяц!✨ вы добровольно на определенный период, либо отказываетесь от чего-то, либо внедряете в свою жизнь хорошую привычку и выработанная энергия идет на исполнение вашего💫
+
+Желание может быть абсолютно любым: материальное, духовное, психологическое и даже физическое, чем аскеза крута, что вы можете загадать даже выздоровление своего близкого!😻"""
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} руб.", callback_data="subscribe_draft")],
+        [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
+        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=about_askeza_text,
+            reply_markup=reply_markup
+        )
+        print(f"✅ [ABOUT_ASKEZA] Информация об Аскезе отправлена пользователю {user_id}")
+        logger.info(f"[ABOUT_ASKEZA] Информация об Аскезе отправлена пользователю {user_id}")
+    except Exception as e:
+        print(f"❌ [ABOUT_ASKEZA] Ошибка при отправке сообщения пользователю {user_id}: {e}")
+        logger.error(f"[ABOUT_ASKEZA] Ошибка при отправке сообщения пользователю {user_id}: {e}")
+
+async def handle_tariffs_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик отображения тарифов"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    print(f"🔍 [TARIFFS] Получен запрос на отображение тарифов от пользователя {user_id}")
+    logger.info(f"[TARIFFS] Получен запрос на отображение тарифов от пользователя {user_id}")
+    
+    tariffs_text = f"""
+💎 Доступные тарифы:
+
+🌸 Аскеза - {config.ASKEZA_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• 30 дней подписки
+
+🌸 Аскеза+проверка черновика - {config.ASKEZA_DRAFT_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Проверка вашего черновика аскезы
+• 30 дней подписки
+
+🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
+• Доступ к закрытому каналу
+• Эксклюзивные материалы
+• Нумерологический разбор любого запроса
+• 30 дней подписки
+
+Выберите подходящий тариф:
+    """
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
+        [InlineKeyboardButton(f"🌸 Аскеза+черновик - {config.ASKEZA_DRAFT_PRICE} руб.", callback_data="subscribe_draft")],
+        [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
+        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    try:
+        await query.edit_message_text(
+            tariffs_text,
+            reply_markup=reply_markup
+        )
+        print(f"✅ [TARIFFS] Тарифы отправлены пользователю {user_id}")
+        logger.info(f"[TARIFFS] Тарифы отправлены пользователю {user_id}")
+    except Exception as e:
+        print(f"❌ [TARIFFS] Ошибка при отправке тарифов пользователю {user_id}: {e}")
+        logger.error(f"[TARIFFS] Ошибка при отправке тарифов пользователю {user_id}: {e}")
 
 async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик главного меню"""
@@ -705,22 +837,19 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
         """
     else:
         keyboard = [
-            [InlineKeyboardButton(f"🌸 Аскеза - {config.ASKEZA_PRICE} руб.", callback_data="subscribe_askeza")],
-            [InlineKeyboardButton(f"🔮 Аскеза+Нумерология - {config.ASKEZA_NUMEROLOGY_PRICE} руб.", callback_data="subscribe_numerology")],
+            [InlineKeyboardButton("💎 Тарифы", callback_data="tariffs")],
+            [InlineKeyboardButton("📖 Об Аскезе", callback_data="about_askeza")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        welcome_text = f"""
+        welcome_text = """
 🏠 Главное меню
 
-Получите доступ к эксклюзивным материалам и закрытым обсуждениям.
+Получите доступ к эксклюзивным материалам, закрытым обсуждениям и персональным консультациям.
 
-🌸 **Аскеза** - {config.ASKEZA_PRICE} рублей
-🔮 **Аскеза+Нумерология** - {config.ASKEZA_NUMEROLOGY_PRICE} рублей
-
-Подписка на {config.SUBSCRIPTION_DAYS} дней.
+Нажмите "💎 Тарифы" чтобы выбрать подходящий тариф подписки.
         """
     
     await query.edit_message_text(
@@ -751,18 +880,25 @@ def main():
 
         # Добавляем обработчики
         application.add_handler(CommandHandler("start", start))
+        application.add_handler(CallbackQueryHandler(handle_tariffs_callback, pattern="tariffs"))
         application.add_handler(CallbackQueryHandler(handle_subscribe_askeza_callback, pattern="subscribe_askeza"))
+        application.add_handler(CallbackQueryHandler(handle_subscribe_draft_callback, pattern="subscribe_draft"))
         application.add_handler(CallbackQueryHandler(handle_subscribe_numerology_callback, pattern="subscribe_numerology"))
         application.add_handler(CallbackQueryHandler(handle_check_payment_callback, pattern="check_payment"))
         application.add_handler(CallbackQueryHandler(handle_my_status_callback, pattern="my_status"))
         application.add_handler(CallbackQueryHandler(handle_renew_subscription_callback, pattern="renew_subscription"))
         application.add_handler(CallbackQueryHandler(handle_about_subscription_callback, pattern="about_subscription"))
+        application.add_handler(CallbackQueryHandler(handle_about_askeza_callback, pattern="about_askeza"))
         application.add_handler(CallbackQueryHandler(handle_main_menu_callback, pattern="main_menu"))
         application.add_error_handler(error_handler)
 
         print("✅ Обработчики зарегистрированы:")
         print("   • /start - команда старт")
-        print("   • subscribe - подписка")
+        print("   • tariffs - отображение тарифов")
+        print("   • subscribe_askeza - подписка Аскеза")
+        print("   • subscribe_draft - подписка Аскеза+черновик")
+        print("   • subscribe_numerology - подписка Аскеза+Нумерология")
+        print("   • about_askeza - информация об Аскезе")
         print("   • check_payment - проверка платежа")
         print("   • my_status - статус подписки")
         print("   • renew_subscription - продление подписки")
