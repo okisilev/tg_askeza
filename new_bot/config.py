@@ -17,10 +17,13 @@ class Config:
     
     # Ключи ЮКассы
     YOOKASSA_SHOP_ID: str = "1163671"
-    YOOKASSA_SECRET_KEY: str = "test_r0kwPnEziXP9IB-oPdBgGbd4VwrdoS5_ejuDtmxmjms"
+    YOOKASSA_SECRET_KEY: str = "live_gglRueTPx8YLNJ4h2p36zsS-YwnZm4rpql5TY0QCmJM"
     
     # ID приватного канала
     PRIVATE_CHANNEL_ID: str = "-1003129707770"
+    
+    # Постоянная ссылка-приглашение в группу/чат (используется ботом для выдачи доступа)
+    GROUP_INVITE_LINK: str = "https://t.me/+-Qw-jcbmVWU0ZjAy"
     
     # ID администратора для уведомлений
     ADMIN_ID: int = 431292182  # Замените на ваш Telegram ID

@@ -117,72 +117,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expires_at = datetime.fromisoformat(subscription['expires_at'])
         days_left = (expires_at - datetime.now()).days
         
-        # Создаем новую пригласительную ссылку для доступа к каналу
-        try:
-            print(f"🔗 [START] Создаем пригласительную ссылку для пользователя {user_id}")
-            logger.info(f"[START] Создаем пригласительную ссылку для пользователя {user_id}")
-            
-            invite_link = await context.bot.create_chat_invite_link(
-                chat_id=int(config.PRIVATE_CHANNEL_ID),
-                member_limit=1,
-                expire_date=None
-            )
-            
-            print(f"✅ [START] Пригласительная ссылка создана для пользователя {user_id}")
-            logger.info(f"[START] Пригласительная ссылка создана для пользователя {user_id}")
-            
-            keyboard = [
-                [InlineKeyboardButton("📺 Перейти в канал", url=invite_link.invite_link)],
-                [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
-                [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            status_text = f"""
+        # Отправляем постоянную ссылку на группу из конфигурации
+        keyboard = [
+            [InlineKeyboardButton("📺 Перейти в группу", url=config.GROUP_INVITE_LINK)],
+            [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
+            [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        status_text = f"""
 🎉 Добро пожаловать обратно!
 
 У вас есть активная подписка до {expires_at.strftime('%d.%m.%Y')}
 Осталось дней: {days_left}
 
-Нажмите кнопку ниже для перехода в приватный канал.
-            """
-            
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=status_text,
-                reply_markup=reply_markup
-            )
-            
-        except Exception as e:
-            print(f"❌ [START] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
-            logger.error(f"[START] Ошибка при создании пригласительной ссылки для пользователя {user_id}: {e}")
-            
-            # Fallback - используем статичную ссылку
-            keyboard = [
-                [InlineKeyboardButton("📺 Перейти в канал", url=f"https://t.me/c/{config.PRIVATE_CHANNEL_ID[1:]}")],
-                [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
-                [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            status_text = f"""
-🎉 Добро пожаловать обратно!
-
-У вас есть активная подписка до {expires_at.strftime('%d.%m.%Y')}
-Осталось дней: {days_left}
-
-Нажмите кнопку ниже для перехода в приватный канал.
-            """
-            
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=status_text,
-                reply_markup=reply_markup
-            )
+Нажмите кнопку ниже, чтобы перейти в закрытую группу.
+        """
+        
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=status_text,
+            reply_markup=reply_markup
+        )
     else:
         # Пользователь не подписан
         keyboard = [
-            [InlineKeyboardButton("💎 Тарифы", callback_data="tariffs")],
+            [InlineKeyboardButton("❤️ Хочу", callback_data="tariffs")],
             [InlineKeyboardButton("📖 Об Аскезе", callback_data="about_askeza")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
@@ -194,7 +154,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 Получите доступ к эксклюзивным материалам, закрытым обсуждениям и персональным консультациям.
 
-Нажмите "💎 Тарифы" чтобы выбрать подходящий тариф подписки.
+Нажмите "❤️ Хочу" чтобы выбрать подходящий тариф подписки.
         """
         
         await context.bot.send_message(
@@ -411,25 +371,15 @@ async def handle_check_payment_callback(update: Update, context: ContextTypes.DE
                     print(f"❌ [CHECK] Ошибка при отправке уведомлений: {e}")
                     logger.error(f"[CHECK] Ошибка при отправке уведомлений: {e}")
                 
-                # Создаем пригласительную ссылку
-                invite_link = await context.bot.create_chat_invite_link(
-                    chat_id=int(config.PRIVATE_CHANNEL_ID),
-                    member_limit=1,
-                    expire_date=None
-                )
-                
-                print(f"✅ [CHECK] Пригласительная ссылка создана для пользователя {user_id}")
-                logger.info(f"[CHECK] Пригласительная ссылка создана для пользователя {user_id}")
-                
-                # Отправляем приглашение пользователю
+                # Отправляем приглашение пользователю (постоянная ссылка)
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text=f"📺 Добро пожаловать в приватный канал!\n\n{invite_link.invite_link}"
+                    text=f"📺 Добро пожаловать в закрытую группу!\n\n{config.GROUP_INVITE_LINK}"
                 )
                 
                 # Обновляем сообщение
                 keyboard = [
-                    [InlineKeyboardButton("📺 Перейти в канал", url=invite_link.invite_link)],
+                    [InlineKeyboardButton("📺 Перейти в группу", url=config.GROUP_INVITE_LINK)],
                     [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
                     [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
                 ]
@@ -441,7 +391,7 @@ async def handle_check_payment_callback(update: Update, context: ContextTypes.DE
 Подписка действует {config.SUBSCRIPTION_DAYS} дней.
 Вы получили доступ к эксклюзивным материалам и закрытым обсуждениям.
 
-Нажмите кнопку ниже для перехода в канал.
+Нажмите кнопку ниже для перехода в группу.
                 """
                 
                 await query.edit_message_text(
@@ -521,7 +471,7 @@ async def handle_my_status_callback(update: Update, context: ContextTypes.DEFAUL
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("📺 Перейти в канал", url=invite_link.invite_link)],
+                    [InlineKeyboardButton("📺 Перейти в группу", url=config.GROUP_INVITE_LINK)],
                     [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")],
                     [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
                 ]
@@ -823,7 +773,7 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
         days_left = (expires_at - datetime.now()).days
         
         keyboard = [
-            [InlineKeyboardButton("📺 Перейти в канал", url=f"https://t.me/c/{config.PRIVATE_CHANNEL_ID[1:]}")],
+            [InlineKeyboardButton("📺 Перейти в группу", url=config.GROUP_INVITE_LINK)],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("🔄 Продлить подписку", callback_data="renew_subscription")]
         ]
@@ -837,7 +787,7 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
         """
     else:
         keyboard = [
-            [InlineKeyboardButton("💎 Тарифы", callback_data="tariffs")],
+            [InlineKeyboardButton("❤️ Хочу", callback_data="tariffs")],
             [InlineKeyboardButton("📖 Об Аскезе", callback_data="about_askeza")],
             [InlineKeyboardButton("📊 Мой статус", callback_data="my_status")],
             [InlineKeyboardButton("ℹ️ О подписке", callback_data="about_subscription")]
@@ -849,7 +799,7 @@ async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAUL
 
 Получите доступ к эксклюзивным материалам, закрытым обсуждениям и персональным консультациям.
 
-Нажмите "💎 Тарифы" чтобы выбрать подходящий тариф подписки.
+Нажмите "❤️ Хочу" чтобы выбрать подходящий тариф подписки.
         """
     
     await query.edit_message_text(
